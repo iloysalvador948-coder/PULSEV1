@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useGameStore } from '../../store/useGameStore';
 import { BentoCard } from '../../components/ui/BentoCard';
-import { PressableCard } from '../../components/ui/PressableCard';
 import { Typography } from '../../components/ui/Typography';
 import { COLORS, SPACING, ROUND_COUNTS, FONT_SIZES } from '../../utils/constants';
 import { RoundCount } from '../../types';
@@ -115,12 +114,15 @@ export default function ConfigScreen() {
       </ScrollView>
       
       <View style={styles.footer}>
-        <PressableCard onPress={handleConfirm} style={styles.confirmButton}>
+        <Pressable onPress={handleConfirm} style={({ pressed }) => [
+          styles.confirmButton,
+          pressed && styles.confirmButtonPressed
+        ]}>
           <View style={styles.confirmContent}>
             <Text style={styles.confirmButtonText}>FIND OPPONENT</Text>
-            <Ionicons name="arrow-forward" size={24} color={COLORS.textPrimary} />
+            <Ionicons name="search" size={24} color={COLORS.textPrimary} />
           </View>
-        </PressableCard>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
@@ -185,17 +187,25 @@ const styles = StyleSheet.create({
   },
   confirmButton: {
     height: 60,
+    backgroundColor: COLORS.primary,
+    borderRadius: 20,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmButtonPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   confirmContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: SPACING.md,
+    width: '100%',
+    paddingHorizontal: SPACING.lg,
   },
   confirmButtonText: {
     color: COLORS.textPrimary,
-    fontSize: FONT_SIZES.heading,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
   },
 });

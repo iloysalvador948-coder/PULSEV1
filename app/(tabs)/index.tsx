@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,7 +7,6 @@ import { useUserStore } from '../../store/useUserStore';
 import { useMatchHistoryStore } from '../../store/useMatchHistoryStore';
 import { useGameStore } from '../../store/useGameStore';
 import { BentoCard } from '../../components/ui/BentoCard';
-import { PressableCard } from '../../components/ui/PressableCard';
 import { Typography } from '../../components/ui/Typography';
 import { EloRingBadge } from '../../components/ui/EloRingBadge';
 import { Tag } from '../../components/ui/Tag';
@@ -94,20 +93,21 @@ export default function DashboardScreen() {
         </View>
         
         <View style={styles.row2}>
-          <PressableCard onPress={startBattle} style={styles.startBattleCard}>
+          <Pressable onPress={startBattle} style={({ pressed }) => [
+            styles.startBattleCard,
+            pressed && styles.startBattleCardPressed
+          ]}>
             <View style={styles.startBattleContent}>
-              <View>
-                <Typography variant="heading">START BATTLE</Typography>
-                <Typography variant="caption" color={COLORS.textSecondary}>
-                  Find an opponent in 5 seconds
-                </Typography>
+              <View style={styles.startBattleTextContainer}>
+                <Text style={styles.startBattleTitle}>START BATTLE</Text>
+                <Text style={styles.startBattleSubtitle}>Find an opponent in 5 seconds</Text>
               </View>
               <View style={styles.startBattleIcon}>
-                <Ionicons name="arrow-forward" size={28} color={COLORS.primary} />
+                <Ionicons name="flash" size={32} color={COLORS.textPrimary} />
               </View>
             </View>
             <View style={styles.startBattleGlow} />
-          </PressableCard>
+          </Pressable>
         </View>
         
         <View style={styles.row3}>
@@ -283,30 +283,53 @@ const styles = StyleSheet.create({
   },
   startBattleCard: {
     height: 120,
+    backgroundColor: COLORS.primary,
+    borderRadius: 28,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
     overflow: 'hidden',
+  },
+  startBattleCardPressed: {
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
   },
   startBattleContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     height: '100%',
+    paddingHorizontal: SPACING.lg,
+  },
+  startBattleTextContainer: {
+    flex: 1,
+  },
+  startBattleTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: SPACING.xs,
+  },
+  startBattleSubtitle: {
+    color: 'rgba(240, 240, 240, 0.7)',
+    fontSize: 14,
+    fontWeight: '400',
   },
   startBattleGlow: {
     position: 'absolute',
     top: 0,
     right: 0,
-    width: '40%',
+    width: '35%',
     height: '100%',
-    backgroundColor: COLORS.primary,
-    opacity: 0.1,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.15,
     borderTopRightRadius: 28,
     borderBottomRightRadius: 28,
   },
   startBattleIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: COLORS.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
