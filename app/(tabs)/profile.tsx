@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, StyleSheet, ScrollView, Pressable, TextInput, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../../store/useUserStore';
@@ -10,10 +10,16 @@ import { Tag } from '../../components/ui/Tag';
 import { Divider } from '../../components/ui/Divider';
 import { COLORS, SPACING } from '../../utils/constants';
 import { getRankTier, getRankTierColor } from '../../utils/elo';
+import { useHaptics } from '../../hooks/useHaptics';
 
 export default function ProfileScreen() {
   const profile = useUserStore((state) => state.profile);
   const history = useMatchHistoryStore((state) => state.history);
+  const updateProfile = useUserStore((state) => state.updateProfile);
+  const haptics = useHaptics();
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedUsername, setEditedUsername] = useState(profile.username);
   
   const tier = useMemo(() => getRankTier(profile.elo), [profile.elo]);
   const tierColor = useMemo(() => getRankTierColor(tier), [tier]);
@@ -39,6 +45,23 @@ export default function ProfileScreen() {
   
   const initials = profile.username.slice(0, 2).toUpperCase();
   
+  const handleEditToggle = () => {
+    haptics.impactLight();
+    if (isEditing) {
+      // Cancel edit
+      setEditedUsername(profile.username);
+    }
+    setIsEditing(!isEditing);
+  };
+  
+  const handleSaveUsername = () => {
+    haptics.notificationSuccess();
+    if (editedUsername.trim().length > 0) {
+      updateProfile({ username: editedUsername.trim() });
+    }
+    setIsEditing(false);
+  };
+  
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
@@ -60,9 +83,38 @@ export default function ProfileScreen() {
               />
             </View>
           </View>
-          <Typography variant="heading" style={styles.username}>
-            {profile.username}
-          </Typography>
+          
+          {isEditing ? (
+            <View style={styles.editUsernameContainer}>
+              <TextInput
+                style={styles.usernameInput}
+                value={editedUsername}
+                onChangeText={setEditedUsername}
+                placeholder="Enter username"
+                placeholderTextColor={COLORS.textMuted}
+                maxLength={20}
+                autoFocus
+              />
+              <View style={styles.editButtonsRow}>
+                <Pressable onPress={handleEditToggle} style={styles.cancelButton}>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </Pressable>
+                <Pressable onPress={handleSaveUsername} style={styles.saveButton}>
+                  <Text style={styles.saveButtonText}>Save</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.usernameContainer}>
+              <Typography variant="heading" style={styles.username}>
+                {profile.username}
+              </Typography>
+              <Pressable onPress={handleEditToggle} style={styles.editButton}>
+                <Ionicons name="pencil" size={18} color={COLORS.textSecondary} />
+              </Pressable>
+            </View>
+          )}
+          
           <Typography variant="caption" color={COLORS.textSecondary}>
             Member since {memberSince}
           </Typography>
@@ -256,5 +308,59 @@ const styles = StyleSheet.create({
     padding: SPACING.xl,
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  usernameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    marginBottom: SPACING.xs,
+  },
+  editButton: {
+    padding: SPACING.xs,
+  },
+  editUsernameContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  usernameInput: {
+    width: '80%',
+    height: 44,
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    paddingHorizontal: SPACING.md,
+    color: COLORS.textPrimary,
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: SPACING.sm,
+  },
+  editButtonsRow: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  cancelButton: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+  },
+  cancelButtonText: {
+    color: COLORS.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  saveButton: {
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
+    borderRadius: 12,
+    backgroundColor: COLORS.primary,
+  },
+  saveButtonText: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
