@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Native
+android/
+ios/
+*.xcworkspace
+
+# Build
+*.apk
+*.aab
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# Env
+.env
+.env.local
+.env.production.local
+
+# Testing
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo

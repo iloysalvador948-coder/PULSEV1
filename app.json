@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "PULSE",
+    "slug": "pulse-quiz",
+    "scheme": "pulse",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0E0E0F",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pulse.quiz"
+    },
+    "android": {
+      "package": "com.pulse.quiz"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
