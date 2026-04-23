@@ -117,10 +117,14 @@ export default function BattleScreen() {
   const timeRemaining = useGameStore((state) => state.timeRemaining);
   const isTimerRunning = useGameStore((state) => state.isTimerRunning);
   const answerSubmitted = useGameStore((state) => state.answerSubmitted);
+  const opponentProfile = useGameStore((state) => state.opponentProfile);
 
   const transition = useGameStore((state) => state.transition);
   const setTimeRemaining = useGameStore((state) => state.setTimeRemaining);
   const useLifeline = useGameStore((state) => state.useLifeline);
+
+  const isPvP = activeConfig?.matchMode === 'pvp';
+  const opponentName = opponentProfile?.username || 'BOT';
 
   const [lifelineUsed, setLifelineUsed] = useState(false);
   const [hiddenOptions, setHiddenOptions] = useState<string[]>([]);
@@ -367,7 +371,7 @@ export default function BattleScreen() {
               <View style={styles.scoreUpdateDivider} />
               <View style={styles.scoreUpdateItem}>
                 <Typography variant="caption" color={COLORS.textSecondary}>
-                  BOT SCORE
+                  {opponentName.toUpperCase()} SCORE
                 </Typography>
                 <Typography variant="display" color={COLORS.textPrimary}>
                   {opponentScore}
@@ -403,7 +407,9 @@ export default function BattleScreen() {
 
         <View style={styles.playerInfo}>
           <View style={styles.avatar}>
-            <Typography variant="caption" color={COLORS.textSecondary}>BOT</Typography>
+            <Typography variant="caption" color={COLORS.textSecondary}>
+              {opponentName.slice(0, 6).toUpperCase()}
+            </Typography>
           </View>
         </View>
       </View>
@@ -428,7 +434,7 @@ export default function BattleScreen() {
 
             <View style={styles.scoreSection}>
               <Typography variant="subheading" color={COLORS.textSecondary}>
-                BOT
+                {opponentName.toUpperCase()}
               </Typography>
               <Typography variant="display" color={COLORS.textPrimary}>
                 {opponentScore}

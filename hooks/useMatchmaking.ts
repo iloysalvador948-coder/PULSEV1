@@ -5,7 +5,7 @@ import { MATCHMAKING_DELAY } from '../utils/constants';
 import { simulateOpponentAnswer } from '../utils/matchSimulator';
 import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = 'http://localhost:3001';
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://localhost:3001';
 
 interface UseMatchmakingOptions {
   onMatchFound: (room: MatchRoom) => void;
