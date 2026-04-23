@@ -7,7 +7,10 @@ import Animated, {
   withSpring,
   useSharedValue,
 } from 'react-native-reanimated';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../utils/constants';
+import { useThemeContext } from '../../context/ThemeContext';
+import { SPACING, BORDER_RADIUS, darkColors } from '../../utils/constants';
+
+const COLORS = darkColors;
 
 const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 

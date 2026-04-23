@@ -11,7 +11,9 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 import { useUserStore } from '../store/useUserStore';
-import { COLORS } from '../utils/constants';
+import { useThemeStore } from '../store/useThemeStore';
+import { getColors, darkColors } from '../utils/constants';
+import { ThemeProvider } from '../context/ThemeContext';
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -21,8 +23,10 @@ export default function RootLayout() {
     Inter_700Bold,
   });
   
-  const isHydrated = useUserStore((state) => state.isHydrated);
+  const themeMode = useThemeStore((state) => state.mode);
   const [showSplash, setShowSplash] = useState(true);
+  
+  const colors = themeMode === 'dark' ? darkColors : getColors(themeMode);
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -33,37 +37,37 @@ export default function RootLayout() {
   
   if (!fontsLoaded || showSplash) {
     return (
-      <View style={styles.splash}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.splash, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
   
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: COLORS.background },
-          animation: 'slide_from_right',
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(match)" options={{ presentation: 'fullScreenModal' }} />
-      </Stack>
-    </GestureHandlerRootView>
+    <ThemeProvider mode={themeMode}>
+      <GestureHandlerRootView style={styles.container}>
+        <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'slide_from_right',
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(match)" options={{ presentation: 'fullScreenModal' }} />
+        </Stack>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
   },
   splash: {
     flex: 1,
-    backgroundColor: COLORS.background,
     justifyContent: 'center',
     alignItems: 'center',
   },

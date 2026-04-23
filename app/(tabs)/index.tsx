@@ -6,17 +6,19 @@ import { useRouter } from 'expo-router';
 import { useUserStore } from '../../store/useUserStore';
 import { useMatchHistoryStore } from '../../store/useMatchHistoryStore';
 import { useGameStore } from '../../store/useGameStore';
+import { useThemeContext } from '../../context/ThemeContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { Typography } from '../../components/ui/Typography';
 import { EloRingBadge } from '../../components/ui/EloRingBadge';
 import { Tag } from '../../components/ui/Tag';
-import { COLORS, SPACING } from '../../utils/constants';
+import { SPACING, darkColors } from '../../utils/constants';
 import { getRankTier, getRankTierColor, getEloProgressToNextTier } from '../../utils/elo';
 
 export default function DashboardScreen() {
   const router = useRouter();
   const profile = useUserStore((state) => state.profile);
   const history = useMatchHistoryStore((state) => state.history);
+  const { colors: COLORS } = useThemeContext();
   
   const tier = useMemo(() => getRankTier(profile.elo), [profile.elo]);
   const tierColor = useMemo(() => getRankTierColor(tier), [tier]);
@@ -219,7 +221,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: darkColors.background,
   },
   scrollContent: {
     padding: SPACING.md,
@@ -232,7 +234,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   logo: {
-    color: COLORS.textPrimary,
+    color: darkColors.textPrimary,
   },
   notificationButton: {
     padding: SPACING.sm,
@@ -259,7 +261,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   eloNumber: {
-    color: COLORS.textPrimary,
+    color: darkColors.textPrimary,
   },
   eloTier: {
     alignSelf: 'flex-start',
@@ -275,7 +277,7 @@ const styles = StyleSheet.create({
   },
   statDivider: {
     height: 1,
-    backgroundColor: COLORS.divider,
+    backgroundColor: darkColors.divider,
     marginVertical: SPACING.xs,
   },
   row2: {
@@ -283,10 +285,10 @@ const styles = StyleSheet.create({
   },
   startBattleCard: {
     height: 120,
-    backgroundColor: COLORS.primary,
+    backgroundColor: darkColors.primary,
     borderRadius: 28,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: darkColors.primary,
     overflow: 'hidden',
   },
   startBattleCardPressed: {
@@ -304,7 +306,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   startBattleTitle: {
-    color: COLORS.textPrimary,
+    color: darkColors.textPrimary,
     fontSize: 24,
     fontWeight: '700',
     marginBottom: SPACING.xs,
@@ -365,7 +367,7 @@ const styles = StyleSheet.create({
   streakDivider: {
     width: '80%',
     height: 1,
-    backgroundColor: COLORS.divider,
+    backgroundColor: darkColors.divider,
     marginVertical: SPACING.sm,
   },
   bestStreakRow: {
@@ -391,7 +393,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING.sm,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.divider,
+    borderBottomColor: darkColors.divider,
   },
   recentMatchLeft: {
     flex: 1,

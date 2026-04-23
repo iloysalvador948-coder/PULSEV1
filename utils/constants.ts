@@ -1,4 +1,6 @@
-export const COLORS = {
+export type ThemeMode = 'dark' | 'light';
+
+export const darkColors = {
   background: '#0E0E0F',
   cardSurface: '#1A1A1A',
   cardBorder: '#222222',
@@ -9,7 +11,29 @@ export const COLORS = {
   textSecondary: '#8A8A8A',
   textMuted: '#4A4A4A',
   divider: '#2A2A2A',
-} as const;
+};
+
+export const lightColors = {
+  background: '#F5F5F5',
+  cardSurface: '#FFFFFF',
+  cardBorder: '#E0E0E0',
+  primary: '#B81908',
+  secondary: '#4CAF50',
+  tertiary: '#FF9800',
+  textPrimary: '#1A1A1A',
+  textSecondary: '#666666',
+  textMuted: '#9E9E9E',
+  divider: '#E0E0E0',
+};
+
+export function getColors(mode: ThemeMode) {
+  return mode === 'dark' ? darkColors : lightColors;
+}
+
+const defaultColors = darkColors;
+
+// COLORS export for backward compatibility
+export const COLORS = defaultColors;
 
 export const SPACING = {
   xs: 4,

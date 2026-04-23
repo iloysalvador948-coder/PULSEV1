@@ -4,11 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../../store/useUserStore';
 import { useMatchHistoryStore } from '../../store/useMatchHistoryStore';
+import { useThemeStore } from '../../store/useThemeStore';
+import { useThemeContext } from '../../context/ThemeContext';
+import { SPACING, darkColors } from '../../utils/constants';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { Typography } from '../../components/ui/Typography';
 import { Tag } from '../../components/ui/Tag';
 import { Divider } from '../../components/ui/Divider';
-import { COLORS, SPACING } from '../../utils/constants';
 import { getRankTier, getRankTierColor } from '../../utils/elo';
 import { useHaptics } from '../../hooks/useHaptics';
 
@@ -17,6 +19,8 @@ export default function ProfileScreen() {
   const history = useMatchHistoryStore((state) => state.history);
   const updateProfile = useUserStore((state) => state.updateProfile);
   const haptics = useHaptics();
+  const toggleTheme = useThemeStore((state) => state.toggleTheme);
+  const { colors: COLORS, mode: themeMode } = useThemeContext();
   
   const [isEditing, setIsEditing] = useState(false);
   const [editedUsername, setEditedUsername] = useState(profile.username);
@@ -69,6 +73,15 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <BentoCard style={styles.headerCard}>
+          <View style={styles.headerTopRow}>
+            <Pressable onPress={toggleTheme} style={styles.themeToggle}>
+              <Ionicons 
+                name={themeMode === 'dark' ? 'moon' : 'sunny'} 
+                size={24} 
+                color={COLORS.textSecondary} 
+              />
+            </Pressable>
+          </View>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Typography variant="heading" color={COLORS.textPrimary}>
@@ -225,7 +238,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: darkColors.background,
   },
   scrollContent: {
     padding: SPACING.md,
@@ -235,6 +248,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: SPACING.md,
   },
+  headerTopRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: SPACING.sm,
+  },
+  themeToggle: {
+    padding: SPACING.xs,
+  },
   avatarContainer: {
     position: 'relative',
     marginBottom: SPACING.md,
@@ -243,7 +265,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: darkColors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -326,12 +348,12 @@ const styles = StyleSheet.create({
   usernameInput: {
     width: '80%',
     height: 44,
-    backgroundColor: COLORS.background,
+    backgroundColor: darkColors.background,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: darkColors.cardBorder,
     paddingHorizontal: SPACING.md,
-    color: COLORS.textPrimary,
+    color: darkColors.textPrimary,
     fontSize: 18,
     textAlign: 'center',
     marginBottom: SPACING.sm,
@@ -345,10 +367,10 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.sm,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: darkColors.cardBorder,
   },
   cancelButtonText: {
-    color: COLORS.textSecondary,
+    color: darkColors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -356,10 +378,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderRadius: 12,
-    backgroundColor: COLORS.primary,
+    backgroundColor: darkColors.primary,
   },
   saveButtonText: {
-    color: COLORS.textPrimary,
+    color: darkColors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
   },

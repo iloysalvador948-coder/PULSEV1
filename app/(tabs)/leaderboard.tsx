@@ -3,10 +3,11 @@ import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useUserStore } from '../../store/useUserStore';
+import { useThemeContext } from '../../context/ThemeContext';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { Typography } from '../../components/ui/Typography';
 import { Tag } from '../../components/ui/Tag';
-import { COLORS, SPACING } from '../../utils/constants';
+import { SPACING, darkColors } from '../../utils/constants';
 import { getRankTier, getRankTierColor } from '../../utils/elo';
 import { RankTier, LeaderboardEntry } from '../../types';
 
@@ -27,6 +28,7 @@ const MOCK_LEADERBOARD: LeaderboardEntry[] = [
 
 export default function LeaderboardScreen() {
   const profile = useUserStore((state) => state.profile);
+  const { colors: COLORS } = useThemeContext();
   const [filter, setFilter] = useState<'ALL' | 'WEEKLY'>('ALL');
   
   const combinedLeaderboard = useMemo(() => {
@@ -167,7 +169,7 @@ export default function LeaderboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: darkColors.background,
   },
   header: {
     padding: SPACING.md,
@@ -183,12 +185,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.sm,
     borderRadius: 20,
-    backgroundColor: COLORS.cardSurface,
+    backgroundColor: darkColors.cardSurface,
     borderWidth: 1,
-    borderColor: COLORS.cardBorder,
+    borderColor: darkColors.cardBorder,
   },
   filterTabActive: {
-    borderColor: COLORS.primary,
+    borderColor: darkColors.primary,
     backgroundColor: 'rgba(184, 25, 8, 0.15)',
   },
   scrollContent: {
@@ -215,7 +217,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
   },
   podiumCardCenter: {
-    borderColor: COLORS.tertiary,
+    borderColor: darkColors.tertiary,
     borderWidth: 2,
   },
   podiumRank: {
@@ -225,7 +227,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: darkColors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: SPACING.xs,
@@ -240,7 +242,7 @@ const styles = StyleSheet.create({
   },
   currentUserRow: {
     borderLeftWidth: 3,
-    borderLeftColor: COLORS.primary,
+    borderLeftColor: darkColors.primary,
   },
   playerRank: {
     width: 40,
@@ -249,7 +251,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.cardBorder,
+    backgroundColor: darkColors.cardBorder,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: SPACING.sm,
