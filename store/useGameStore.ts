@@ -17,6 +17,7 @@ interface GameStore {
   playerElo: number;
   botElo: number;
   opponentProfile: OpponentProfile | null;
+  matchRoomId: string | null;
   selectedAnswer: string | null;
   timeRemaining: number;
   isTimerRunning: boolean;
@@ -44,6 +45,7 @@ const initialState = {
   playerElo: 1200,
   botElo: 1200,
   opponentProfile: null,
+  matchRoomId: null,
   selectedAnswer: null,
   timeRemaining: TIMER_DURATION_SECONDS,
   isTimerRunning: false,

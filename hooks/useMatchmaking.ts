@@ -1,11 +1,22 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { MatchMode, OpponentProfile, MatchRoom, RoundResult, Question } from '../types';
+import { MatchMode, OpponentProfile, MatchRoom, RoundResult } from '../types';
 import { MATCHMAKING_DELAY } from '../utils/constants';
 import { simulateOpponentAnswer } from '../utils/matchSimulator';
 import { io, Socket } from 'socket.io-client';
 
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://localhost:3001';
+
+let sharedSocket: Socket | null = null;
+let currentRoomId: string | null = null;
+
+export function getSharedSocket(): Socket | null {
+  return sharedSocket;
+}
+
+export function getCurrentRoomId(): string | null {
+  return currentRoomId;
+}
 
 interface UseMatchmakingOptions {
   onMatchFound: (room: MatchRoom) => void;
@@ -15,7 +26,6 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
   const { onMatchFound } = options;
   const isSearching = useRef(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const socketRef = useRef<Socket | null>(null);
 
   const findMatch = useCallback(async (mode: MatchMode, playerElo: number, totalRounds: number = 5) => {
     if (isSearching.current) return;
@@ -48,10 +58,15 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
 
     try {
       console.log('PvP: Connecting to', SERVER_URL);
-      const socket = io(SERVER_URL, {
-        transports: ['websocket', 'polling']
-      });
-      socketRef.current = socket;
+      
+      // Reuse existing socket or create new one
+      if (!sharedSocket || !sharedSocket.connected) {
+        sharedSocket = io(SERVER_URL, {
+          transports: ['websocket', 'polling']
+        });
+      }
+
+      const socket = sharedSocket;
 
       socket.on('connect', () => {
         console.log('PvP: Connected! Socket ID:', socket.id);
@@ -64,6 +79,7 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
 
       socket.on('match_found', (room) => {
         console.log('PvP: Match found!', room);
+        currentRoomId = room.id;
         isSearching.current = false;
         onMatchFound(room);
       });
@@ -72,9 +88,10 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
         console.log(`PvP: Searching... position ${position}`);
       });
 
-      socket.on('disconnect', () => {
-        console.log('PvP: Disconnected');
-      });
+      // If already connected, emit immediately
+      if (socket.connected) {
+        socket.emit('find_match', { elo: playerElo, totalRounds });
+      }
 
     } catch (error) {
       isSearching.current = false;
@@ -87,10 +104,11 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
       clearTimeout(searchTimeout.current);
       searchTimeout.current = null;
     }
-    if (socketRef.current) {
-      socketRef.current.emit('cancel_search');
-      socketRef.current.disconnect();
-      socketRef.current = null;
+    if (sharedSocket) {
+      sharedSocket.emit('cancel_search');
+      sharedSocket.disconnect();
+      sharedSocket = null;
+      currentRoomId = null;
     }
     isSearching.current = false;
   }, []);
@@ -98,57 +116,75 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
   return { findMatch, cancelSearch, isSearching: isSearching.current };
 }
 
-export function usePvPMatch(roomId: string | null) {
-  const store = useGameStore.getState();
-  const [connected, setConnected] = useState(false);
-  const [opponentAnswer, setOpponentAnswer] = useState<RoundResult | null>(null);
+// Reusable PvP game hook that uses shared socket
+export function usePvPGame() {
+  const [state, setState] = useState({
+    connected: false,
+    roundResult: null as { playerResult: RoundResult; opponentResult: RoundResult } | null,
+    waitingForOpponent: false,
+  });
+
+  const roundResultRef = useRef<{ playerResult: RoundResult; opponentResult: RoundResult } | null>(null);
 
   useEffect(() => {
-    if (!roomId) return;
+    if (!sharedSocket || !currentRoomId) return;
 
-    const ws = connectToMatchRoom(roomId);
-    setConnected(true);
+    console.log('PvP Game: Setting up listeners for room', currentRoomId);
 
-    ws.onmessage = (event) => {
-      const message = JSON.parse(event.data);
-      handleNetworkMessage(message);
-    };
+    const socket = sharedSocket;
 
-    ws.onclose = () => {
-      setConnected(false);
-    };
+    socket.on('round_result', (data) => {
+      console.log('PvP Game: Round result received', data);
+      roundResultRef.current = data;
+      setState({
+        connected: true,
+        roundResult: data,
+        waitingForOpponent: false
+      });
+    });
+
+    socket.on('answer_received', () => {
+      console.log('PvP Game: Waiting for opponent');
+      setState(s => ({ ...s, waitingForOpponent: true }));
+    });
+
+    socket.on('disconnect', () => {
+      console.log('PvP Game: Disconnected');
+      setState(s => ({ ...s, connected: false }));
+    });
+
+    setState(s => ({ ...s, connected: socket.connected }));
 
     return () => {
-      ws.close();
-      setConnected(false);
+      // Don't remove listeners - keep socket alive
     };
-  }, [roomId]);
+  }, []);
 
-  const handleNetworkMessage = (message: { type: string; payload: unknown }) => {
-    switch (message.type) {
-      case 'answer_submitted':
-        setOpponentAnswer(message.payload as RoundResult);
-        break;
-    }
-  };
-
-  const submitAnswer = useCallback(async (answer: string) => {
-    if (!roomId) return;
-    await matchmakingApi_submitAnswer(roomId, answer);
-  }, [roomId]);
-
-  const waitForOpponent = useCallback(async (): Promise<RoundResult> => {
-    return new Promise((resolve) => {
-      const checkAnswer = setInterval(() => {
-        if (opponentAnswer) {
-          clearInterval(checkAnswer);
-          resolve(opponentAnswer);
-        }
-      }, 100);
+  const submitAnswer = useCallback((answer: string, timeUsed: number) => {
+    if (!sharedSocket || !currentRoomId) return;
+    
+    sharedSocket.emit('submit_answer', {
+      roomId: currentRoomId,
+      answer,
+      timeUsed
     });
-  }, [opponentAnswer]);
+    
+    setState(s => ({ ...s, waitingForOpponent: true }));
+    console.log('PvP Game: Submitted answer', answer);
+  }, []);
 
-  return { connected, submitAnswer, waitForOpponent };
+  const clearRoundResult = useCallback(() => {
+    roundResultRef.current = null;
+    setState(s => ({ ...s, roundResult: null }));
+  }, []);
+
+  return {
+    connected: state.connected,
+    roundResult: state.roundResult,
+    waitingForOpponent: state.waitingForOpponent,
+    submitAnswer,
+    clearRoundResult,
+  };
 }
 
 function generateBotUsername(): string {
@@ -166,36 +202,8 @@ function getBotEloForPlayer(playerElo: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function connectToMatchRoom(roomId: string): WebSocket {
-  const wsUrl = `wss://your-server.com/match/${roomId}`;
-  return new WebSocket(wsUrl);
-}
-
-async function matchmakingApi_findMatch(playerElo: number): Promise<MatchRoom> {
-  const response = await fetch('https://your-api.com/match/find', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ elo: playerElo }),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to find match');
-  }
-  return response.json();
-}
-
-async function matchmakingApi_submitAnswer(roomId: string, answer: string): Promise<void> {
-  const response = await fetch(`https://your-api.com/match/${roomId}/answer`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ answer }),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to submit answer');
-  }
-}
-
 export function getOpponentResultForPvP(
-  question: Question,
+  question: { id: string; correctAnswer: string },
   playerAnswer: string | null,
   botElo: number,
   roundNumber: number,

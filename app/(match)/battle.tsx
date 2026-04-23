@@ -14,7 +14,7 @@ import { COLORS, SPACING, TIMER_DURATION_SECONDS, BORDER_RADIUS } from '../../ut
 import { useHaptics } from '../../hooks/useHaptics';
 import { getRandomQuestions } from '../../utils/questions';
 import { simulateOpponentAnswer, getBotElo } from '../../utils/matchSimulator';
-import { usePvPGame } from '../../hooks/usePvPGame';
+import { usePvPGame } from '../../hooks/useMatchmaking';
 
 type AnswerState = 'default' | 'selected' | 'correct' | 'incorrect' | 'hidden';
 
@@ -126,9 +126,8 @@ export default function BattleScreen() {
 
   const isPvP = activeConfig?.matchMode === 'pvp';
   const opponentName = opponentProfile?.username || 'BOT';
-  const roomId = useGameStore((state) => state.opponentProfile?.id || null);
   
-  const pvpGame = usePvPGame(isPvP ? `pvp_${Date.now()}` : null);
+  const pvpGame = usePvPGame();
   
   const [lifelineUsed, setLifelineUsed] = useState(false);
   const [hiddenOptions, setHiddenOptions] = useState<string[]>([]);

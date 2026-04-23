@@ -53,6 +53,7 @@ export default function MatchmakingScreen() {
         opponentResults: [],
         botElo: room.players[1].elo,
         opponentProfile: room.players[1],
+        matchRoomId: room.id,
         roundResults: [],
         playerScore: 0,
         opponentScore: 0,
