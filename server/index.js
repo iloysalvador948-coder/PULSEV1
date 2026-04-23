@@ -188,9 +188,17 @@ function simulateBotAnswer(question, elo) {
 
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
+  
+  let botTimeout = null;
 
   socket.on('find_match', ({ elo = 1200, totalRounds = 5 }) => {
     console.log(`Finding match for ${socket.id} with ELO ${elo}, ${totalRounds} rounds`);
+    
+    // Clear any existing timeout
+    if (botTimeout) {
+      clearTimeout(botTimeout);
+      botTimeout = null;
+    }
 
     const opponent = findMatchmakingPair(elo);
     
@@ -198,19 +206,11 @@ io.on('connection', (socket) => {
       // REAL PvP - match two players together
       const roomId = uuidv4();
       
-      // Player 1 (opponent from queue)
-      const player1Socket = opponent.socketId;
-      const player1Elo = opponent.elo;
-      
-      // Player 2 (current socket)
-      const player2Socket = socket.id;
-      const player2Elo = elo;
-      
       const room = {
         id: roomId,
         players: [
-          { id: 'player1', socketId: player1Socket, username: 'Player 1', elo: player1Elo, score: 0 },
-          { id: 'player2', socketId: player2Socket, username: 'Player 2', elo: player2Elo, score: 0 }
+          { id: 'player1', socketId: opponent.socketId, username: 'Player 1', elo: opponent.elo, score: 0 },
+          { id: 'player2', socketId: socket.id, username: 'Player 2', elo, score: 0 }
         ],
         currentRound: 1,
         totalRounds,
@@ -222,54 +222,57 @@ io.on('connection', (socket) => {
       };
       
       rooms.set(roomId, room);
-      
-      // Join both players to the room
-      io.sockets.sockets.get(player1Socket)?.join(roomId);
+      io.sockets.sockets.get(opponent.socketId)?.join(roomId);
       socket.join(roomId);
       
-      const startTime = Date.now() + 2000;
       io.to(roomId).emit('match_found', {
         roomId,
         players: room.players,
         questions: room.questions,
-        startTime,
+        startTime: Date.now() + 2000,
         currentRound: 1
       });
       
-      console.log(`REAL PvP Match created: ${roomId} between ${player1Socket} and ${player2Socket}`);
+      console.log(`REAL PvP Match created: ${roomId}`);
     } else {
-      // No opponent found - create bot match after short delay
-      const roomId = uuidv4();
-      const botElo = Math.max(800, Math.min(2200, elo + (Math.random() * 300 - 150)));
+      // Add to queue
+      matchmakingQueue.push({ socketId: socket.id, elo, totalRounds });
+      socket.emit('searching', { position: matchmakingQueue.length });
+      console.log(`Added ${socket.id} to queue. Queue size: ${matchmakingQueue.length}`);
       
-      const room = {
-        id: roomId,
-        players: [
-          { id: 'player1', socketId: socket.id, username: 'Player', elo, score: 0 },
-          { id: 'bot', socketId: 'bot', username: generateBotUsername(), elo: botElo, score: 0 }
-        ],
-        currentRound: 1,
-        totalRounds,
-        questions: getRandomQuestions(totalRounds),
-        playerAnswers: new Map(),
-        roundResults: new Map(),
-        state: 'playing',
-        startTime: Date.now()
-      };
-      
-      rooms.set(roomId, room);
-      socket.join(roomId);
-      
-      const startTime = Date.now() + 2000;
-      io.to(roomId).emit('match_found', {
-        roomId,
-        players: room.players,
-        questions: room.questions,
-        startTime,
-        currentRound: 1
-      });
-      
-      console.log(`Bot match created for ${socket.id}: ${roomId}`);
+      // Set timeout - if no match found in 10 seconds, create bot match
+      botTimeout = setTimeout(() => {
+        const roomId = uuidv4();
+        const botElo = Math.max(800, Math.min(2200, elo + (Math.random() * 300 - 150)));
+        
+        const room = {
+          id: roomId,
+          players: [
+            { id: 'player1', socketId: socket.id, username: 'Player', elo, score: 0 },
+            { id: 'bot', socketId: 'bot', username: generateBotUsername(), elo: botElo, score: 0 }
+          ],
+          currentRound: 1,
+          totalRounds,
+          questions: getRandomQuestions(totalRounds),
+          playerAnswers: new Map(),
+          roundResults: new Map(),
+          state: 'playing',
+          startTime: Date.now()
+        };
+        
+        rooms.set(roomId, room);
+        socket.join(roomId);
+        
+        socket.emit('match_found', {
+          roomId,
+          players: room.players,
+          questions: room.questions,
+          startTime: Date.now() + 2000,
+          currentRound: 1
+        });
+        
+        console.log(`Bot match (timeout) for ${socket.id}: ${roomId}`);
+      }, 10000); // 10 second timeout
     }
   });
 
