@@ -6,14 +6,22 @@ import { useRouter } from 'expo-router';
 import { useGameStore } from '../../store/useGameStore';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { Typography } from '../../components/ui/Typography';
-import { COLORS, SPACING, ROUND_COUNTS, FONT_SIZES } from '../../utils/constants';
-import { RoundCount } from '../../types';
+import { darkColors, SPACING, ROUND_COUNTS, FONT_SIZES } from '../../utils/constants';
+import { RoundCount, MatchMode } from '../../types';
 import { useHaptics } from '../../hooks/useHaptics';
+
+const COLORS = darkColors;
+
+const MATCH_MODES: { mode: MatchMode; label: string; icon: string; description: string }[] = [
+  { mode: 'bot', label: 'Bot', icon: 'hardware-chip', description: 'Practice vs AI' },
+  { mode: 'pvp', label: 'PvP', icon: 'people', description: 'Real opponent' },
+];
 
 export default function ConfigScreen() {
   const router = useRouter();
   const haptics = useHaptics();
   const [selectedRounds, setSelectedRounds] = useState<RoundCount>(5);
+  const [selectedMode, setSelectedMode] = useState<MatchMode>('bot');
   
   const transition = useGameStore((state) => state.transition);
   const setConfig = useGameStore((state) => state.setConfig);
@@ -23,19 +31,23 @@ export default function ConfigScreen() {
     setSelectedRounds(rounds);
   }, [haptics]);
   
+  const handleSelectMode = useCallback((mode: MatchMode) => {
+    haptics.selection();
+    setSelectedMode(mode);
+  }, [haptics]);
+  
   const gameState = useGameStore((state) => state.state);
   
   const handleConfirm = useCallback(() => {
     haptics.impactMedium();
     const store = useGameStore.getState();
-    // Only proceed if clean state
     if (store.state !== 'IDLE' && store.state !== 'PRE_MATCH_CONFIG') {
       store.reset();
     }
-    setConfig(selectedRounds);
+    setConfig(selectedRounds, selectedMode);
     transition('confirmConfig');
     router.push('/(match)/matchmaking');
-  }, [haptics, selectedRounds, setConfig, transition, router]);
+  }, [haptics, selectedRounds, selectedMode, setConfig, transition, router]);
   
   const handleCancel = useCallback(() => {
     haptics.impactLight();
@@ -85,6 +97,52 @@ export default function ConfigScreen() {
                   }
                 >
                   {rounds}
+                </Typography>
+              </Pressable>
+            ))}
+          </View>
+        </BentoCard>
+        
+        <BentoCard style={styles.roundCard}>
+          <Typography 
+            variant="caption" 
+            color={COLORS.textSecondary} 
+            letterSpacing={1.2}
+            style={styles.sectionLabel}
+          >
+            SELECT MODE
+          </Typography>
+          <View style={styles.modeOptions}>
+            {MATCH_MODES.map((item) => (
+              <Pressable
+                key={item.mode}
+                onPress={() => handleSelectMode(item.mode)}
+                style={[
+                  styles.modeOption,
+                  selectedMode === item.mode && styles.modeOptionSelected,
+                ]}
+              >
+                <Ionicons 
+                  name={item.icon as any}
+                  size={28}
+                  color={selectedMode === item.mode ? COLORS.primary : COLORS.textSecondary}
+                />
+                <Typography 
+                  variant="subheading" 
+                  color={
+                    selectedMode === item.mode 
+                      ? COLORS.primary 
+                      : COLORS.textSecondary
+                  }
+                  style={styles.modeLabel}
+                >
+                  {item.label}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  color={COLORS.textMuted}
+                >
+                  {item.description}
                 </Typography>
               </Pressable>
             ))}
@@ -172,6 +230,28 @@ const styles = StyleSheet.create({
   roundOptionSelected: {
     borderColor: COLORS.primary,
     backgroundColor: 'rgba(184, 25, 8, 0.15)',
+  },
+  modeOptions: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  modeOption: {
+    width: '45%',
+    height: 100,
+    borderRadius: 20,
+    backgroundColor: COLORS.cardSurface,
+    borderWidth: 1,
+    borderColor: COLORS.cardBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  modeOptionSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: 'rgba(184, 25, 8, 0.15)',
+  },
+  modeLabel: {
+    marginTop: SPACING.xs,
   },
   infoCard: {
     gap: SPACING.md,

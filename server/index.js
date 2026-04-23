@@ -195,6 +195,50 @@ io.on('connection', (socket) => {
     const opponent = findMatchmakingPair(elo);
     
     if (opponent) {
+      // REAL PvP - match two players together
+      const roomId = uuidv4();
+      
+      // Player 1 (opponent from queue)
+      const player1Socket = opponent.socketId;
+      const player1Elo = opponent.elo;
+      
+      // Player 2 (current socket)
+      const player2Socket = socket.id;
+      const player2Elo = elo;
+      
+      const room = {
+        id: roomId,
+        players: [
+          { id: 'player1', socketId: player1Socket, username: 'Player 1', elo: player1Elo, score: 0 },
+          { id: 'player2', socketId: player2Socket, username: 'Player 2', elo: player2Elo, score: 0 }
+        ],
+        currentRound: 1,
+        totalRounds,
+        questions: getRandomQuestions(totalRounds),
+        playerAnswers: new Map(),
+        roundResults: new Map(),
+        state: 'playing',
+        startTime: Date.now()
+      };
+      
+      rooms.set(roomId, room);
+      
+      // Join both players to the room
+      io.sockets.sockets.get(player1Socket)?.join(roomId);
+      socket.join(roomId);
+      
+      const startTime = Date.now() + 2000;
+      io.to(roomId).emit('match_found', {
+        roomId,
+        players: room.players,
+        questions: room.questions,
+        startTime,
+        currentRound: 1
+      });
+      
+      console.log(`REAL PvP Match created: ${roomId} between ${player1Socket} and ${player2Socket}`);
+    } else {
+      // No opponent found - create bot match after short delay
       const roomId = uuidv4();
       const botElo = Math.max(800, Math.min(2200, elo + (Math.random() * 300 - 150)));
       
@@ -225,11 +269,7 @@ io.on('connection', (socket) => {
         currentRound: 1
       });
       
-      console.log(`Match created: ${roomId}`);
-    } else {
-      matchmakingQueue.push({ socketId: socket.id, elo });
-      socket.emit('searching', { position: matchmakingQueue.length });
-      console.log(`Added ${socket.id} to queue. Queue size: ${matchmakingQueue.length}`);
+      console.log(`Bot match created for ${socket.id}: ${roomId}`);
     }
   });
 

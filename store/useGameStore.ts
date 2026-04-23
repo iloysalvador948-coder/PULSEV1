@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { GameState, FSMAction, MatchConfig, Question, RoundResult, RoundCount } from '../types';
+import { GameState, FSMAction, MatchConfig, Question, RoundResult, RoundCount, MatchMode, OpponentProfile } from '../types';
 import { TIMER_DURATION_SECONDS } from '../utils/constants';
 import { getRandomQuestions } from '../utils/questions';
 import { simulateOpponentAnswer, getBotElo } from '../utils/matchSimulator';
@@ -16,12 +16,13 @@ interface GameStore {
   opponentScore: number;
   playerElo: number;
   botElo: number;
+  opponentProfile: OpponentProfile | null;
   selectedAnswer: string | null;
   timeRemaining: number;
   isTimerRunning: boolean;
   answerSubmitted: boolean;
   transition: (action: FSMAction) => void;
-  setConfig: (totalRounds: RoundCount) => void;
+  setConfig: (totalRounds: RoundCount, matchMode?: MatchMode) => void;
   syncPlayerElo: (elo: number) => void;
   startMatch: () => void;
   submitAnswer: (answer: string) => void;
@@ -42,6 +43,7 @@ const initialState = {
   opponentScore: 0,
   playerElo: 1200,
   botElo: 1200,
+  opponentProfile: null,
   selectedAnswer: null,
   timeRemaining: TIMER_DURATION_SECONDS,
   isTimerRunning: false,
@@ -195,13 +197,14 @@ export const useGameStore = create<GameStore>()(
       }
     },
     
-    setConfig: (totalRounds: RoundCount) => {
+    setConfig: (totalRounds: RoundCount, matchMode: MatchMode = 'bot') => {
       set((draft) => {
         draft.config = {
           totalRounds,
           currentRound: 1,
           timePerRound: TIMER_DURATION_SECONDS,
           lifelineUsed: false,
+          matchMode,
         };
       });
     },

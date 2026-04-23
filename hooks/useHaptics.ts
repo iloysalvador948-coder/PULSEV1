@@ -1,33 +1,36 @@
 import { useCallback } from 'react';
+import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
+
+const isWeb = Platform.OS === 'web';
 
 export function useHaptics() {
   const impactLight = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (!isWeb) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
   
   const impactMedium = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!isWeb) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, []);
   
   const impactHeavy = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    if (!isWeb) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   }, []);
   
   const selection = useCallback(() => {
-    Haptics.selectionAsync();
+    if (!isWeb) Haptics.selectionAsync();
   }, []);
   
   const notificationSuccess = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (!isWeb) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
   
   const notificationWarning = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    if (!isWeb) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   }, []);
   
   const notificationError = useCallback(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    if (!isWeb) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
   }, []);
   
   return {

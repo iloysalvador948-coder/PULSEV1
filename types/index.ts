@@ -20,11 +20,14 @@ export type FSMAction =
 
 export type RoundCount = 5 | 6 | 7;
 
+export type MatchMode = 'bot' | 'pvp';
+
 export interface MatchConfig {
   totalRounds: RoundCount;
   currentRound: number;
   timePerRound: number;
   lifelineUsed: boolean;
+  matchMode: MatchMode;
 }
 
 export interface Question {
@@ -88,4 +91,22 @@ export interface LeaderboardEntry {
   elo: number;
   tier: RankTier;
   isCurrentUser?: boolean;
+}
+
+export interface OpponentProfile {
+  id: string;
+  username: string;
+  elo: number;
+}
+
+export interface MatchRoom {
+  id: string;
+  players: [OpponentProfile, OpponentProfile];
+  isReady: boolean;
+  roundAnswers: (RoundResult | null)[];
+}
+
+export interface NetworkMessage {
+  type: 'match_found' | 'answer_submitted' | 'round_end' | 'match_end';
+  payload: unknown;
 }
