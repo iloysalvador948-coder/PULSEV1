@@ -104,6 +104,9 @@ export interface MatchRoom {
   players: [OpponentProfile, OpponentProfile];
   isReady: boolean;
   roundAnswers: (RoundResult | null)[];
+  questions?: Question[];
+  startTime?: number;
+  currentRound?: number;
 }
 
 export interface NetworkMessage {

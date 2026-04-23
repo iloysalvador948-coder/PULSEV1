@@ -6,16 +6,19 @@ import Animated, {
   withRepeat,
   withTiming,
   withSequence,
-  Easing,
   cancelAnimation,
+  runOnJS,
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useGameStore } from '../../store/useGameStore';
+import { useMatchmaking } from '../../hooks/useMatchmaking';
 import { Typography } from '../../components/ui/Typography';
-import { COLORS, SPACING, MATCHMAKING_DELAY } from '../../utils/constants';
-import { GameState } from '../../types';
+import { darkColors, SPACING } from '../../utils/constants';
+import { GameState, MatchRoom } from '../../types';
 import { getRandomQuestions } from '../../utils/questions';
 import { getBotElo } from '../../utils/matchSimulator';
+
+const COLORS = darkColors;
 
 export default function MatchmakingScreen() {
   const router = useRouter();
@@ -29,53 +32,27 @@ export default function MatchmakingScreen() {
     opacity: opacity.value,
   }));
   
-  useEffect(() => {
-    const store = useGameStore.getState();
-    
-    // Guard: if no config, redirect to config
-    if (!store.config) {
-      router.replace('/(match)/config');
-      return;
-    }
-    
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.4, { duration: 1500, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: 0 })
-      ),
-      -1,
-      false
-    );
-    
-    opacity.value = withRepeat(
-      withSequence(
-        withTiming(0, { duration: 1500, easing: Easing.out(Easing.cubic) }),
-        withTiming(1, { duration: 0 })
-      ),
-      -1,
-      false
-    );
-    
-    const delay = 2000;
-    
-    const timeout = setTimeout(() => {
+  const navigateToBattle = useCallback(() => {
+    router.replace('/(match)/battle');
+  }, [router]);
+  
+  const { findMatch, cancelSearch, isSearching } = useMatchmaking({
+    onMatchFound: (room: MatchRoom) => {
+      console.log('Match found!', room);
       cancelAnimation(scale);
       cancelAnimation(opacity);
       
-      // Directly set up game state and navigate
       const store = useGameStore.getState();
+      const questions = room.questions || getRandomQuestions(store.config!.totalRounds);
       
-      // Get questions and bot
-      const questions = getRandomQuestions(store.config!.totalRounds);
-      const botElo = getBotElo(store.playerElo);
-      
-      // Directly update store state (bypassing FSM transition)
+      // Update store with match data
       useGameStore.setState({
         state: GameState.ROUND_ACTIVE,
         questions: questions,
         currentQuestion: questions[0],
         opponentResults: [],
-        botElo: botElo,
+        botElo: room.players[1].elo,
+        opponentProfile: room.players[1],
         roundResults: [],
         playerScore: 0,
         opponentScore: 0,
@@ -86,14 +63,47 @@ export default function MatchmakingScreen() {
       });
       
       router.replace('/(match)/battle');
-    }, delay);
+    },
+  });
+  
+  useEffect(() => {
+    const store = useGameStore.getState();
+    
+    if (!store.config) {
+      router.replace('/(match)/config');
+      return;
+    }
+    
+    // Start animations
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.4, { duration: 1500, easing: (t) => Math.pow(t, 3) }),
+        withTiming(1, { duration: 0 })
+      ),
+      -1,
+      false
+    );
+    
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 1500, easing: (t) => Math.pow(t, 3) }),
+        withTiming(1, { duration: 0 })
+      ),
+      -1,
+      false
+    );
+    
+    // Start matchmaking
+    const { matchMode } = store.config;
+    console.log('Starting matchmaking, mode:', matchMode);
+    findMatch(matchMode, store.playerElo, store.config.totalRounds);
     
     return () => {
-      clearTimeout(timeout);
       cancelAnimation(scale);
       cancelAnimation(opacity);
+      cancelSearch();
     };
-  }, [scale, opacity, transition, router]);
+  }, [scale, opacity, findMatch, cancelSearch, router]);
   
   return (
     <View style={styles.container}>
@@ -112,7 +122,9 @@ export default function MatchmakingScreen() {
         SEARCHING...
       </Typography>
       <Typography variant="caption" color={COLORS.textSecondary}>
-        Matching by ELO rank
+        {useGameStore.getState().config?.matchMode === 'pvp' 
+          ? 'Finding opponent...' 
+          : 'Finding bot...'}
       </Typography>
     </View>
   );

@@ -47,18 +47,33 @@ export function useMatchmaking(options: UseMatchmakingOptions) {
     }
 
     try {
-      const socket = io(SERVER_URL);
+      console.log('PvP: Connecting to', SERVER_URL);
+      const socket = io(SERVER_URL, {
+        transports: ['websocket', 'polling']
+      });
       socketRef.current = socket;
 
-      socket.emit('find_match', { elo: playerElo, totalRounds });
+      socket.on('connect', () => {
+        console.log('PvP: Connected! Socket ID:', socket.id);
+        socket.emit('find_match', { elo: playerElo, totalRounds });
+      });
+
+      socket.on('connect_error', (error) => {
+        console.log('PvP: Connection error:', error.message);
+      });
 
       socket.on('match_found', (room) => {
+        console.log('PvP: Match found!', room);
         isSearching.current = false;
         onMatchFound(room);
       });
 
       socket.on('searching', ({ position }) => {
-        console.log(`Searching... position ${position}`);
+        console.log(`PvP: Searching... position ${position}`);
+      });
+
+      socket.on('disconnect', () => {
+        console.log('PvP: Disconnected');
       });
 
     } catch (error) {
