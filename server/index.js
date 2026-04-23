@@ -276,47 +276,83 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('submit_answer', ({ roomId, answer }) => {
+  socket.on('submit_answer', ({ roomId, answer, timeUsed }) => {
     const room = rooms.get(roomId);
     if (!room || room.state !== 'playing') return;
     
-    room.playerAnswers.set(socket.id, answer);
-    
+    const currentQuestion = room.questions[room.currentRound - 1];
     const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
     if (playerIndex === -1) return;
     
-    const currentQuestion = room.questions[room.currentRound - 1];
-    const playerAnswer = room.playerAnswers.get(socket.id);
+    // Calculate player's result
+    const isCorrect = answer === currentQuestion.correctAnswer;
+    const actualTimeUsed = timeUsed || (Math.random() * 10 + 3);
+    const points = calculatePoints(actualTimeUsed, isCorrect, false);
     
-    const isCorrect = playerAnswer === currentQuestion.correctAnswer;
-    const timeUsed = Math.random() * 10 + 3;
-    const lifelineUsed = false;
-    const points = calculatePoints(timeUsed, isCorrect, lifelineUsed);
-    
-    const result = {
+    const playerResult = {
       roundNumber: room.currentRound,
       questionId: currentQuestion.id,
-      playerAnswer: playerAnswer || null,
+      playerAnswer: answer,
       correctAnswer: currentQuestion.correctAnswer,
       isCorrect,
       pointsEarned: points,
-      timeUsed
+      timeUsed: actualTimeUsed
     };
     
-    room.roundResults.set(socket.id, result);
+    // Store answer and result
+    room.playerAnswers.set(socket.id, { answer, timeUsed: actualTimeUsed });
+    room.roundResults.set(socket.id, playerResult);
     room.players[playerIndex].score += points;
     
+    console.log(`Player ${playerIndex + 1} answered: ${answer} (correct: ${isCorrect})`);
+    
+    // For BOT matches, calculate bot answer immediately
     if (room.players[1].socketId === 'bot') {
       const botResult = simulateBotAnswer(currentQuestion, room.players[1].elo);
       room.roundResults.set('bot', botResult);
       room.players[1].score += botResult.pointsEarned;
+      
+      io.to(roomId).emit('round_result', {
+        playerResult,
+        opponentResult: botResult,
+        scores: room.players.map(p => ({ socketId: p.socketId, score: p.score }))
+      });
+      console.log(`Bot answered: ${botResult.playerAnswer} (correct: ${botResult.isCorrect})`);
+    } else {
+      // Real PvP - wait for opponent's answer
+      const opponentSocketId = room.players.find(p => p.socketId !== socket.id)?.socketId;
+      const opponentAnswer = room.playerAnswers.get(opponentSocketId);
+      
+      if (opponentAnswer) {
+        // Both players answered - calculate opponent result
+        const opponentResult = {
+          roundNumber: room.currentRound,
+          questionId: currentQuestion.id,
+          playerAnswer: opponentAnswer.answer,
+          correctAnswer: currentQuestion.correctAnswer,
+          isCorrect: opponentAnswer.answer === currentQuestion.correctAnswer,
+          pointsEarned: calculatePoints(opponentAnswer.timeUsed, opponentAnswer.answer === currentQuestion.correctAnswer, false),
+          timeUsed: opponentAnswer.timeUsed
+        };
+        
+        room.roundResults.set(opponentSocketId, opponentResult);
+        const opponentIndex = room.players.findIndex(p => p.socketId === opponentSocketId);
+        if (opponentIndex !== -1) {
+          room.players[opponentIndex].score += opponentResult.pointsEarned;
+        }
+        
+        io.to(roomId).emit('round_result', {
+          playerResult,
+          opponentResult,
+          scores: room.players.map(p => ({ socketId: p.socketId, score: p.score }))
+        });
+        console.log(`Both answered - P1: ${playerResult.playerAnswer}, P2: ${opponentResult.playerAnswer}`);
+      } else {
+        // Only one answered - send acknowledgment
+        socket.emit('answer_received', { playerResult });
+        console.log(`Waiting for opponent's answer...`);
+      }
     }
-    
-    io.to(roomId).emit('round_result', {
-      playerResult: result,
-      botResult: room.roundResults.get('bot'),
-      scores: room.players.map(p => p.score)
-    });
   });
 
   socket.on('next_round', ({ roomId }) => {

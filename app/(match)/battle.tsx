@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useGameStore } from '../../store/useGameStore';
 import { useUserStore } from '../../store/useUserStore';
-import { GameState } from '../../types';
+import { GameState, RoundResult } from '../../types';
 import { BentoCard } from '../../components/ui/BentoCard';
 import { Typography } from '../../components/ui/Typography';
 import { CircularTimer } from '../../components/ui/CircularTimer';
@@ -14,6 +14,7 @@ import { COLORS, SPACING, TIMER_DURATION_SECONDS, BORDER_RADIUS } from '../../ut
 import { useHaptics } from '../../hooks/useHaptics';
 import { getRandomQuestions } from '../../utils/questions';
 import { simulateOpponentAnswer, getBotElo } from '../../utils/matchSimulator';
+import { usePvPGame } from '../../hooks/usePvPGame';
 
 type AnswerState = 'default' | 'selected' | 'correct' | 'incorrect' | 'hidden';
 
@@ -125,11 +126,37 @@ export default function BattleScreen() {
 
   const isPvP = activeConfig?.matchMode === 'pvp';
   const opponentName = opponentProfile?.username || 'BOT';
-
+  const roomId = useGameStore((state) => state.opponentProfile?.id || null);
+  
+  const pvpGame = usePvPGame(isPvP ? `pvp_${Date.now()}` : null);
+  
   const [lifelineUsed, setLifelineUsed] = useState(false);
   const [hiddenOptions, setHiddenOptions] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [lastResult, setLastResult] = useState<{isCorrect: boolean, points: number} | null>(null);
+  
+  // Listen for PvP round results
+  useEffect(() => {
+    if (pvpGame.roundResult && !showResult) {
+      const { playerResult, opponentResult } = pvpGame.roundResult;
+      
+      useGameStore.setState((state) => ({
+        roundResults: [...state.roundResults, playerResult],
+        opponentResults: [...state.opponentResults, opponentResult],
+        playerScore: playerResult.pointsEarned,
+        opponentScore: opponentResult.pointsEarned,
+        state: GameState.ROUND_RESULTS,
+        isTimerRunning: false,
+        answerSubmitted: true,
+      }));
+      
+      setLastResult({ isCorrect: playerResult.isCorrect, points: playerResult.pointsEarned });
+      setShowResult(true);
+      pvpGame.clearRoundResult();
+      
+      setTimeout(() => goToNextRound(), 2000);
+    }
+  }, [pvpGame.roundResult, showResult, pvpGame]);
 
   const isReady = activeConfig && currentQuestion;
 
@@ -206,41 +233,56 @@ export default function BattleScreen() {
     
     haptics.impactLight();
     
-    const isCorrect = answer === store.currentQuestion.correctAnswer;
-    const basePoints = 100;
-    const timeBonus = Math.max(0, Math.round((store.timeRemaining / TIMER_DURATION_SECONDS) * 20));
-    const isLifelineUsed = store.config?.lifelineUsed || false;
-    const pointsEarned = isCorrect ? (isLifelineUsed ? Math.floor((basePoints + timeBonus) / 2) : basePoints + timeBonus) : 0;
+    const timeUsed = TIMER_DURATION_SECONDS - store.timeRemaining;
     
-    const roundResult = {
-      roundNumber: store.config!.currentRound,
-      questionId: store.currentQuestion.id,
-      playerAnswer: answer,
-      correctAnswer: store.currentQuestion.correctAnswer,
-      isCorrect,
-      pointsEarned,
-      timeUsed: TIMER_DURATION_SECONDS - store.timeRemaining,
-      lifelineUsedThisRound: isLifelineUsed && isCorrect,
-    };
-    
-    const opponentResult = simulateOpponentAnswer(store.currentQuestion, store.botElo, store.config!.currentRound);
-    
-    useGameStore.setState((state) => ({
-      selectedAnswer: answer,
-      roundResults: [...state.roundResults, roundResult],
-      opponentResults: [...state.opponentResults, opponentResult],
-      playerScore: state.playerScore + pointsEarned,
-      opponentScore: state.opponentScore + opponentResult.pointsEarned,
-      state: GameState.ROUND_RESULTS,
-      isTimerRunning: false,
-      answerSubmitted: true,
-    }));
-    
-    setLastResult({ isCorrect, points: pointsEarned });
-    setShowResult(true);
-    
-    setTimeout(() => goToNextRound(), 2000);
-  }, [haptics, showResult]);
+    if (isPvP) {
+      // For PvP, send answer to server
+      pvpGame.submitAnswer(answer, timeUsed);
+      
+      const isCorrect = answer === store.currentQuestion.correctAnswer;
+      useGameStore.setState({
+        selectedAnswer: answer,
+        answerSubmitted: true,
+        isTimerRunning: false,
+      });
+    } else {
+      // For bot matches, simulate locally
+      const isCorrect = answer === store.currentQuestion.correctAnswer;
+      const basePoints = 100;
+      const timeBonus = Math.max(0, Math.round((store.timeRemaining / TIMER_DURATION_SECONDS) * 20));
+      const isLifelineUsed = store.config?.lifelineUsed || false;
+      const pointsEarned = isCorrect ? (isLifelineUsed ? Math.floor((basePoints + timeBonus) / 2) : basePoints + timeBonus) : 0;
+      
+      const roundResult: RoundResult = {
+        roundNumber: store.config!.currentRound,
+        questionId: store.currentQuestion.id,
+        playerAnswer: answer,
+        correctAnswer: store.currentQuestion.correctAnswer,
+        isCorrect,
+        pointsEarned,
+        timeUsed,
+        lifelineUsedThisRound: isLifelineUsed && isCorrect,
+      };
+      
+      const opponentResult = simulateOpponentAnswer(store.currentQuestion, store.botElo, store.config!.currentRound);
+      
+      useGameStore.setState((state) => ({
+        selectedAnswer: answer,
+        roundResults: [...state.roundResults, roundResult],
+        opponentResults: [...state.opponentResults, opponentResult],
+        playerScore: state.playerScore + pointsEarned,
+        opponentScore: state.opponentScore + opponentResult.pointsEarned,
+        state: GameState.ROUND_RESULTS,
+        isTimerRunning: false,
+        answerSubmitted: true,
+      }));
+      
+      setLastResult({ isCorrect, points: pointsEarned });
+      setShowResult(true);
+      
+      setTimeout(() => goToNextRound(), 2000);
+    }
+  }, [haptics, showResult, isPvP, pvpGame]);
 
   const handleUseLifeline = useCallback(() => {
     const store = useGameStore.getState();
