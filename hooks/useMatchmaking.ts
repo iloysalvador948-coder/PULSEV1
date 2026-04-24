@@ -50,7 +50,7 @@ class PvPSocketManager {
 
     this.socket.on('answer_received', () => {
       console.log('PvPSocketManager: Answer received, waiting');
-      this.emit('waiting_for_opponent');
+      this.emit('waiting_for_opponent', {});
     });
 
     return this.socket;
@@ -86,7 +86,7 @@ class PvPSocketManager {
       return;
     }
 
-    console.log('PvPSocketManager: Submitting answer', answer);
+    console.log('PvPSocketManager: Submitting answer', answer, 'room:', this.currentRoomId);
     this.socket.emit('submit_answer', {
       roomId: this.currentRoomId,
       answer,

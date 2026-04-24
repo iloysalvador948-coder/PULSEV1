@@ -14,7 +14,7 @@ import { COLORS, SPACING, TIMER_DURATION_SECONDS, BORDER_RADIUS } from '../../ut
 import { useHaptics } from '../../hooks/useHaptics';
 import { getRandomQuestions } from '../../utils/questions';
 import { simulateOpponentAnswer, getBotElo } from '../../utils/matchSimulator';
-import { usePvPGame } from '../../hooks/useMatchmaking';
+import { pvpSocket, usePvPGame } from '../../hooks/useMatchmaking';
 
 type AnswerState = 'default' | 'selected' | 'correct' | 'incorrect' | 'hidden';
 

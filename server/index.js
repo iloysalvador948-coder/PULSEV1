@@ -348,8 +348,8 @@ io.on('connection', (socket) => {
         });
         console.log(`Both answered - P1: ${playerResult.playerAnswer}, P2: ${opponentResult.playerAnswer}`);
       } else {
-        // Only one answered - send acknowledgment
-        socket.emit('answer_received', { playerResult });
+        // Only one answered - send acknowledgment to both in room
+        io.to(roomId).emit('answer_received', { playerResult });
         console.log(`Waiting for opponent's answer...`);
       }
     }
