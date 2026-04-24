@@ -162,7 +162,7 @@ export function useMatchmaking(options: { onMatchFound: (room: MatchRoom) => voi
 
     socket.on('match_found', (room) => {
       console.log('PvP: Match found!', room);
-      pvpSocket.setRoomId(room.id);
+      pvpSocket.setRoomId(room.roomId);
       isSearching.current = false;
       onMatchFound(room);
     });

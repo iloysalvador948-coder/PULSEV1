@@ -101,7 +101,6 @@ export default function MatchmakingScreen() {
     return () => {
       cancelAnimation(scale);
       cancelAnimation(opacity);
-      cancelSearch();
     };
   }, [scale, opacity, findMatch, cancelSearch, router]);
   
