@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, StyleSheet, Easing } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -7,7 +7,6 @@ import Animated, {
   withTiming,
   withSequence,
   cancelAnimation,
-  runOnJS,
 } from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { useGameStore } from '../../store/useGameStore';
@@ -78,7 +77,7 @@ export default function MatchmakingScreen() {
     // Start animations
     scale.value = withRepeat(
       withSequence(
-        withTiming(1.4, { duration: 1500, easing: Easing.ease }),
+        withTiming(1.4, { duration: 1500 }),
         withTiming(1, { duration: 0 })
       ),
       -1,
@@ -87,7 +86,7 @@ export default function MatchmakingScreen() {
     
     opacity.value = withRepeat(
       withSequence(
-        withTiming(0, { duration: 1500, easing: Easing.ease }),
+        withTiming(0, { duration: 1500 }),
         withTiming(1, { duration: 0 })
       ),
       -1,
