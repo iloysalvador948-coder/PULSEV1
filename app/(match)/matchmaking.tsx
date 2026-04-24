@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Easing } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -78,7 +78,7 @@ export default function MatchmakingScreen() {
     // Start animations
     scale.value = withRepeat(
       withSequence(
-        withTiming(1.4, { duration: 1500, easing: (t) => Math.pow(t, 3) }),
+        withTiming(1.4, { duration: 1500, easing: Easing.ease }),
         withTiming(1, { duration: 0 })
       ),
       -1,
@@ -87,7 +87,7 @@ export default function MatchmakingScreen() {
     
     opacity.value = withRepeat(
       withSequence(
-        withTiming(0, { duration: 1500, easing: (t) => Math.pow(t, 3) }),
+        withTiming(0, { duration: 1500, easing: Easing.ease }),
         withTiming(1, { duration: 0 })
       ),
       -1,
